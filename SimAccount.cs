@@ -153,8 +153,8 @@ namespace BTCSIM
         public List<double> total_pl_log { get; set; }
         public List<double> total_pl_ratio { get; set; }
         public List<double> close_log { get; set; }
-        public List<double> buy_points { get; set; }
-        public List<double> sell_points { get; set; }
+        public Dictionary<int,double> buy_points { get; set; }
+        public Dictionary<int, double> sell_points { get; set; }
 
 
         public LogData()
@@ -178,8 +178,8 @@ namespace BTCSIM
             total_pl_log = new List<double>();
             total_pl_ratio = new List<double>();
             close_log = new List<double>();
-            buy_points = new List<double>();
-            sell_points = new List<double>();
+            buy_points = new Dictionary<int, double>();
+            sell_points = new Dictionary<int, double>();
         }
 
         public void add_log_data(int i, string dt, string action, HoldingData hd, OrderData od, PerformanceData pd)
@@ -289,24 +289,33 @@ namespace BTCSIM
             total_pl_list.Add(performance_data.total_pl);
             total_pl_ratio_list.Add(performance_data.total_pl_ratio);
             log_data.close_log.Add(MarketData.Close[i]);
+            if (log_data.buy_points.Keys.Contains(i) == false)
+                log_data.buy_points[i] = 0;
+            if (log_data.sell_points.Keys.Contains(i) == false)
+                log_data.sell_points[i] = 0;
         }
 
-        public void last_day(int i, string dt, double close)
+        //close all holding positions and calc pl
+        public void last_day(int i, double close)
         {
+            order_data = new OrderData();
             if (holding_data.holding_side != "")
             {
                 calc_executed_pl(close, holding_data.holding_size, i);
                 holding_data = new HoldingData();
-                order_data = new OrderData();
                 performance_data.unrealized_pl = 0;
-                performance_data.total_pl = performance_data.realized_pl + performance_data.unrealized_pl - performance_data.total_fee;
-                performance_data.total_pl_ratio = performance_data.total_pl / close;
-                if (performance_data.num_trade > 0)
-                    performance_data.win_rate = Math.Round(Convert.ToDouble(performance_data.num_win) / Convert.ToDouble(performance_data.num_trade), 4);
-                total_pl_list.Add(performance_data.total_pl);
-                total_pl_ratio_list.Add(performance_data.total_pl_ratio);
             }
-
+            performance_data.total_pl = performance_data.realized_pl + performance_data.unrealized_pl - performance_data.total_fee;
+            performance_data.total_pl_ratio = performance_data.total_pl / close;
+            if (performance_data.num_trade > 0)
+                performance_data.win_rate = Math.Round(Convert.ToDouble(performance_data.num_win) / Convert.ToDouble(performance_data.num_trade), 4);
+            total_pl_list.Add(performance_data.total_pl);
+            total_pl_ratio_list.Add(performance_data.total_pl_ratio);
+            log_data.close_log.Add(MarketData.Close[i]);
+            if (log_data.buy_points.Keys.Contains(i) == false)
+                log_data.buy_points[i] = 0;
+            if (log_data.sell_points.Keys.Contains(i) == false)
+                log_data.sell_points[i] = 0;
         }
 
         public void entry_order(string type, string side, double size, double price, int i, string dt, string message)
@@ -477,6 +486,11 @@ namespace BTCSIM
 
         private void process_execution(double exec_price, int order_serial_num, int i, string dt)
         {
+            if (order_data.order_side[order_serial_num] == "buy")
+                log_data.buy_points[i] = exec_price;
+            else
+                log_data.sell_points[i] = exec_price;
+
             calc_fee(order_data.order_size[order_serial_num], exec_price, order_data.order_type[order_serial_num] == "limit" ? "maker" : "taker");
             if (holding_data.holding_side == "")
             {

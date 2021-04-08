@@ -31,7 +31,7 @@ namespace BTCSIM
                 }
                 ac.move_to_next(i + 1, MarketData.Dt[i + 1].ToString(), MarketData.Open[i + 1], MarketData.High[i + 1], MarketData.Low[i + 1], MarketData.Close[i + 1]);
             }
-            ac.last_day(to, MarketData.Dt[to].ToString(), MarketData.Close[to]);
+            ac.last_day(to, MarketData.Close[to]);
             ac.calc_sharp_ratio();
             return ac;
         }
@@ -69,7 +69,7 @@ namespace BTCSIM
                 }
                 ac.move_to_next(i + 1, MarketData.Dt[i + 1].ToString(), MarketData.Open[i + 1], MarketData.High[i + 1], MarketData.Low[i + 1], MarketData.Close[i + 1]);
             }
-            ac.last_day(to, MarketData.Dt[to].ToString(), MarketData.Close[to]);
+            ac.last_day(to, MarketData.Close[to]);
             ac.calc_sharp_ratio();
             return ac;
         }
@@ -117,7 +117,7 @@ namespace BTCSIM
                 }
                 ac.move_to_next(i + 1, MarketData.Dt[i + 1].ToString(), MarketData.Open[i + 1], MarketData.High[i + 1], MarketData.Low[i + 1], MarketData.Close[i + 1]);
             }
-            ac.last_day(to, MarketData.Dt[to].ToString(), MarketData.Close[to]);
+            ac.last_day(to, MarketData.Close[to]);
             ac.calc_sharp_ratio();
             return ac;
         }
@@ -142,7 +142,7 @@ namespace BTCSIM
                 }
                 ac.move_to_next(i + 1, MarketData.Dt[i + 1].ToString(), MarketData.Open[i + 1], MarketData.High[i + 1], MarketData.Low[i + 1], MarketData.Close[i + 1]);
             }
-            ac.last_day(to, MarketData.Dt[to].ToString(), MarketData.Close[to]);
+            ac.last_day(to, MarketData.Close[to]);
             ac.calc_sharp_ratio();
             return ac;
         }

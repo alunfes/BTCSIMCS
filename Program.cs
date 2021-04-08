@@ -143,10 +143,11 @@ namespace BTCSIM
                 Console.WriteLine("\"conti\" : do ga / sim continuously");
                 Console.WriteLine("\"win ga\" : do win ga");
                 Console.WriteLine("\"win sim\" : do win sim");
+                Console.WriteLine("\"sa1\" : statistics analysis1");
                 Console.WriteLine("\"write\" : write MarketData");
                 Console.WriteLine("\"test\" : test");
                 key = Console.ReadLine();
-                if (key == "ga" || key == "sim" || key == "mul ga" || key == "mul sim" || key == "win ga" || key == "conti" || key == "win ga" || key == "win sim" || key == "write" || key == "test")
+                if (key == "ga" || key == "sim" || key == "mul ga" || key == "mul sim" || key == "win ga" || key == "conti" || key == "win ga" || key == "win sim" || key == "write" || key == "test" || key == "sa1")
                     break;
             }
 
@@ -155,13 +156,13 @@ namespace BTCSIM
             stopWatch.Start();
             Console.WriteLine("started program.");
             List<int> terms = new List<int>();
-            for (int i = 10; i < 1000; i = i + 100) { terms.Add(i); }
+            for (int i = 10; i < 100; i = i + 10) { terms.Add(i); }
             MarketData.initializer(terms);
 
-            var from = 1000;
-            var to = 701000;//MarketData.Close.Count-1;
+            var from = 701000;
+            var to = MarketData.Close.Count-1;
             int max_amount = 1;
-            var index = new int[] { 0, 0, 0, 0, 1, 0, 0 };
+            var index = new int[] { 0, 0, 0, 1, 1, 0, 0 };
             double nn_threshold = 0.7;
             int best_island_id = 0;
             bool display_chart = true;
@@ -171,7 +172,7 @@ namespace BTCSIM
             if (key == "test")
             {
                 var ac = doSim(from, to, max_amount, sim_type, best_island_id, display_chart, nn_threshold);
-                LineChart.DisplayLineChart2(plcon, close, buycon, sellcon, "test");
+                LineChart.DisplayLineChart2(ac.total_pl_list, ac.log_data.close_log, ac.log_data.buy_points.Values.ToList(), ac.log_data.sell_points.Values.ToList(), "test");
                 System.Diagnostics.Process.Start(@"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", @"./line_chart.html");
             }
 
@@ -180,15 +181,17 @@ namespace BTCSIM
             if (key == "sim")
             {
                 var ac = doSim(from, to, max_amount, sim_type, best_island_id, display_chart, nn_threshold);
+                LineChart.DisplayLineChart2(ac.total_pl_list, ac.log_data.close_log, ac.log_data.buy_points.Values.ToList(), ac.log_data.sell_points.Values.ToList(), "test");
+                System.Diagnostics.Process.Start(@"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", @"./line_chart.html");
             }
             //island ga
             else if (key == "ga")
             {
-                int num_island = 2;
+                int num_island = 1;
                 int num_chromos = 4;
-                int num_generations = 50;
+                int num_generations = 100;
                 int banned_move_period = 5;
-                var units = new int[] { 14, 25, 5 };
+                var units = new int[] { 42, 90, 5 };
                 var mutation_rate = 0.7;
                 var move_ratio = 0.5;
                 best_island_id = doGA(from, to, max_amount, num_island, num_chromos, num_generations, banned_move_period, units, mutation_rate, move_ratio, index, display_chart, nn_threshold);
@@ -198,16 +201,16 @@ namespace BTCSIM
             //multi strategy combination sim
             else if (key == "mul ga")
             {
-                var index_list = new List<int[]> { new int[] { 0, 0, 0, 1, 1, 0, 0 }, new int[] { 0, 0, 0, 0, 1, 1, 1 } };
-                var units_list = new List<int[]> { new int[] { 77, 5, 5, 5, 5 }, new int[] { 77, 5, 5, 5, 5 } };
+                var index_list = new List<int[]> { new int[] { 1, 0, 0, 0, 0, 0, 0 }, new int[] { 0, 1, 0, 0, 0, 0, 0 }, new int[] { 0, 0, 1, 0, 0, 0, 0 } };
+                var units_list = new List<int[]> { new int[] { 34, 10, 5 }, new int[] { 34, 10, 5 }, new int[] { 34, 10, 5 } };
                 var best_pl_list = new List<List<double>>();
                 var best_ac_list = new List<SimAccount>();
                 int num_island = 2;
                 int num_chromos = 4;
-                int num_generations = 3;
-                int banned_move_period = 2;
-                var mutation_rate = 0.5;
-                var move_ratio = 0.2;
+                int num_generations = 30;
+                int banned_move_period = 3;
+                var mutation_rate = 0.7;
+                var move_ratio = 0.5;
                 var id_list = new List<int>();
                 var nn_threshold_list = new List<double>();
                 for (int i = 0; i < index_list.Count; i++)
@@ -228,7 +231,7 @@ namespace BTCSIM
             }
             else if (key == "mul sim")
             {
-                var num_best_chromo = 4;
+                var num_best_chromo = 3;
                 var id_list = new List<int>();
                 var nn_threshold_list = new List<double>();
                 for (int i = 0; i < num_best_chromo; i++)
@@ -257,6 +260,17 @@ namespace BTCSIM
             else if (key == "win sim")
             {
                 doWinSim(from, to, best_island_id, true, nn_threshold);
+            }
+            else if(key == "sa1")
+            {
+                var sa = new StatisticsAnalysis();
+                //var data_entry_points = Enumerable.Range(0, MarketData.Close.Count).Where(i => i % 10000 == 0).ToList();
+                var data_entry_points = new List<int>();
+                data_entry_points.Add(500000);
+                var entry_num = Enumerable.Range(1, 100).Where(i => i % 5 == 0).ToList();
+                var entry_interval = Enumerable.Range(1, 100).Where(i => i % 5 == 0).ToList();
+                var ptlc_ratio = Enumerable.Range(2, 100).ToList().ConvertAll(x => Math.Round(x * 0.1,1)).ToList();
+                sa.startAnalysis1(data_entry_points, entry_num, entry_interval, entry_interval, ptlc_ratio);
             }
             else if (key == "conti")
             {

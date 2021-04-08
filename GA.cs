@@ -340,7 +340,7 @@ namespace BTCSIM
             Console.WriteLine("buy_pl=" + buy_pl_sum);
             Console.WriteLine("sell_pl=" + sell_pl_sum);
             if (chart)
-                LineChart.DisplayLineChart(ac_master.total_pl_ratio_list, title);
+                LineChart.DisplayLineChart(ac_master.total_pl_list, title);
             return ac_master;
         }
 
@@ -412,7 +412,10 @@ namespace BTCSIM
             //cross over
             crossover(selected_chro_ind_list, 0.3);
             //mutation
-            mutation(mutation_rate, -10, 10);
+            mutation(mutation_rate, -1, 1);
+            //inversion mutation
+            if (generation_ind % 5 == 0)
+                inversion_mutation();
             write_best_chromo();
             eva_dic = null;
             ac_dic = null;
@@ -488,9 +491,9 @@ namespace BTCSIM
             //var sm = calcSquareError(ac.total_pl_ratio_list, ac.performance_data.num_trade);
             //var eva = ac.performance_data.total_pl * Math.Sqrt(ac.performance_data.num_buy * ac.performance_data.num_sell) / sm;
             //var eva = ac.performance_data.sharp_ratio * Math.Sqrt(Math.Sqrt(ac.performance_data.num_buy * ac.performance_data.num_sell));
-            var eva = ac.performance_data.total_pl;
-            if (ac.performance_data.buy_pl_list.Sum() <= 0 || ac.performance_data.sell_pl_list.Sum() <= 0)
-                eva = 0;
+            var eva = ac.performance_data.total_pl * Math.Sqrt(ac.performance_data.num_trade);
+            //if (ac.performance_data.buy_pl_list.Sum() <= 0 || ac.performance_data.sell_pl_list.Sum() <= 0)
+            //    eva = 0;
             if (eva.ToString().Contains("N"))
                 eva = 0;
             return (eva, ac);
@@ -644,6 +647,32 @@ namespace BTCSIM
                                 chromos[i].weight_gene[j][k][l] = rnd.NextDouble() > (1 - mutation_ratio) ? random_generator.getRandomArrayRange(random_weight_min, random_weight_max) : chromos[i].weight_gene[j][k][l];
                         }
                     }
+                }
+            }
+        }
+
+
+        /*
+         * ランダムに選択した染色体をbest chromoの全ウェイトを反転（*-1）した値に変換する。
+         */
+        private void inversion_mutation()
+        {
+            var selected_chro = best_chromo;
+            while (selected_chro == best_chromo)
+                selected_chro = RandomSeed.rnd.Next(chromos.Length);
+            for (int i = 0; i < chromos[selected_chro].bias_gene.Count; i++)
+            {
+                for (int j = 0; j < chromos[selected_chro].bias_gene[i].Length; j++)
+                {
+                    chromos[selected_chro].bias_gene[i][j] = chromos[best_chromo].bias_gene[i][j] * -1.0;
+                }
+            }
+            for (int i = 0; i < chromos[selected_chro].weight_gene.Count; i++)
+            {
+                for (int j = 0; j < chromos[selected_chro].weight_gene[i].Count; j++)
+                {
+                    for (int k=0; k<chromos[selected_chro].weight_gene[i][j].Length; k++)
+                        chromos[selected_chro].weight_gene[i][j][k] = chromos[best_chromo].weight_gene[i][j][k] * -1.0;
                 }
             }
         }

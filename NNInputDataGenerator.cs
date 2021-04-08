@@ -182,7 +182,7 @@ namespace BTCSIM
                 else
                     input_data.Add(0);
             }
-
+            */
 
             //unrealized_pl = amount * (price - holding_price)
             //(price - holding_price) / holding_price  <-目的式
@@ -196,7 +196,7 @@ namespace BTCSIM
                 else
                     input_data.Add(0);
             }
-
+            /*
             //holding period
             for (int j = 1; j < 21; j++)
             {
