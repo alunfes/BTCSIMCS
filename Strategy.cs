@@ -305,6 +305,47 @@ namespace BTCSIM
         }
 
 
+
+        /*
+         * 
+         */
+        public StrategyActionData entryTimingPTLCStrategy(int i, double max_amount, SimAccount ac, string side, int num_entry, int entry_interval, double pt_ratio, double lc_ratio)
+        {
+            var ad = new StrategyActionData();
+            var a = max_amount / (Convert.ToDouble(1 + num_entry) * Convert.ToDouble(num_entry) / 2.0);
+            var entry_amount = (ac.holding_data.holding_entry_num + 1) * a;
+
+            if (ac.holding_data.holding_entry_num >= num_entry - 1)
+                entry_amount = max_amount - ac.holding_data.holding_size;
+            var otype = "market";
+
+
+            //0:pt
+            if (ac.holding_data.holding_side != "" && ac.performance_data.unrealized_pl_ratio >= pt_ratio)
+            {
+                ad.add_action("entry", ac.holding_data.holding_side == "buy" ? "sell" : "buy", otype, 0, ac.holding_data.holding_size, -1, "0. Profit Taking");
+            }
+            //1:lc
+            else if (ac.holding_data.holding_side != "" && ac.performance_data.unrealized_pl_ratio <= lc_ratio)
+            {
+                ad.add_action("entry", ac.holding_data.holding_side == "buy" ? "sell" : "buy", otype, 0, ac.holding_data.holding_size, -1, "1. Loss Cut");
+            }
+            //2:Entry
+            else if (ac.holding_data.holding_entry_num < num_entry && ac.holding_data.holding_size < max_amount && i - ac.holding_data.holding_i >= entry_interval)
+            {
+                ad.add_action("entry", side, otype, 0, entry_amount, -1, "2. Entry");
+            }
+            //3:Holding max amount, no action
+            else if (ac.holding_data.holding_size < max_amount)
+            {
+
+            }
+            return ad;
+        }
+
+
+
+
         /*
          buy / sellでエントリー or exitして、常にpositionを保有し続ける。
         orderは全てmarket order

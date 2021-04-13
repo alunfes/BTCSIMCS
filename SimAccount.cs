@@ -14,14 +14,20 @@ namespace BTCSIM
     {
         public double total_pl { get; set; }
         public double realized_pl { get; set; }
+        public double total_capital { get; set; }
+        public double initial_capital { get; set; }
         public List<double> realized_pl_list { get; set; }
+        public List<double> total_capital_list { get; set; }
         public List<double> buy_pl_list { get; set; }
         public List<double> sell_pl_list { get; set; }
         public double unrealized_pl { get; set; }
         public List<double> unrealized_pl_list { get; set; } //record unrealided pl during holding period for NN input data
+        public double unrealized_pl_ratio { get; set; }
         public double total_pl_ratio { get; set; }
         public List<double> buy_pl_ratio_list { get; set; }
         public List<double> sell_pl_ratio_list { get; set; }
+        public double max_dd { get; set; }
+        public double max_pl { get; set; }
 
         public int num_trade { get; set; }
         public int num_buy { get; set; }
@@ -34,24 +40,30 @@ namespace BTCSIM
 
         public PerformanceData()
         {
-            total_pl = 0;
-            total_pl_ratio = 0;
-            realized_pl = 0;
+            total_pl = 0.0;
+            total_pl_ratio = 0.0;
+            total_capital = 100000.0;
+            initial_capital = 100000.0;
+            realized_pl = 0.0;
             realized_pl_list = new List<double>();
+            total_capital_list = new List<double>();
             buy_pl_list = new List<double>();
             sell_pl_list = new List<double>();
             buy_pl_ratio_list = new List<double>();
             sell_pl_ratio_list = new List<double>();
-            unrealized_pl = 0;
+            unrealized_pl = 0.0;
             unrealized_pl_list = new List<double>();
+            unrealized_pl_ratio = 0.0; //
             num_trade = 0;
             num_buy = 0;
             num_sell = 0;
             win_rate = 0;
             num_win = 0;
             num_maker_order = 0;
-            total_fee = 0;
-            sharp_ratio = 0;
+            total_fee = 0.0;
+            sharp_ratio = 0.0;
+            max_dd = 0.0;
+            max_pl = 0.0;
         }
     }
 
@@ -124,8 +136,12 @@ namespace BTCSIM
         public string holding_side { get; set; }
         public double holding_price { get; set; }
         public double holding_size { get; set; }
+        public double holding_volume { get; set; }
+        public int holding_entry_num { get; set; }
         public int holding_i { get; set; }
         public int holding_period { get; set; }
+        public int holding_initial_i { get; set; }
+        public List<int> holding_period_list { get; set; }
 
         public HoldingData()
         {
@@ -133,16 +149,57 @@ namespace BTCSIM
             holding_period = 0;
             holding_price = 0;
             holding_size = 0;
+            holding_volume = 0;
+            holding_entry_num = 0;
+            holding_side = "";
+            holding_period_list = new List<int>();
+        }
+
+        public void initialize_holding()
+        {
+            holding_i = -1;
+            holding_period = 0;
+            holding_price = 0;
+            holding_size = 0;
+            holding_volume = 0;
+            holding_entry_num = 0;
             holding_side = "";
         }
 
+
         public void update_holding(string side, double price, double size, int i)
         {
-            holding_side = side;
-            holding_price = price;
-            holding_size = size;
-            holding_i = i;
-            holding_period = 0;
+            if (holding_side == "") //New Entry
+            {
+                holding_side = side;
+                holding_price = price;
+                holding_size = size;
+                holding_volume = size * price;
+                holding_entry_num++;
+                holding_i = i;
+                holding_period = 0;
+                holding_initial_i = i;
+            }
+            else if(holding_side != side) //Opposit Entry
+            {
+                holding_period_list.Add(holding_period);
+                holding_side = side;
+                holding_price = price;
+                holding_size = size;
+                holding_volume = size * price;
+                holding_i = i;
+                holding_period = 0;
+                holding_initial_i = i;
+            }
+            else if(holding_side == side) //Additional Entry
+            {
+                holding_side = side;
+                holding_price = price;
+                holding_size = size;
+                holding_volume = size * price;
+                holding_entry_num++;
+                holding_i = i;
+            }
         }
     }
 
@@ -203,22 +260,34 @@ namespace BTCSIM
      * （キャンセルは即時反映、updateも即時反映）
      * 
      * conti simなどでもiは継続した値を使用しないといけない。
+     * 
+     * total_capital = initial_capital + total_pl
+     * total_pl = realized_pl + unrealized_pl + total_fee
+     * realized_pl = (exec_price - entry_price) * size
+     * unrealized_pl = (close - entry_price) * size
+     * fee = fee_rate * exec_price * size
+     * 
      */
     public class SimAccount
     {
-        public const double taker_fee = 0.00075;
-        public const double maker_fee = -0.00025;
-
-        public int start_ind = 0;
-        public int end_ind = 0;
-
         public PerformanceData performance_data;
         public OrderData order_data;
         public HoldingData holding_data;
         public LogData log_data;
 
+        public const double taker_fee = 0.00075;
+        public const double maker_fee = -0.00025;
+        public const double leverage_limit = 10;
+        public double leverage = 0.0;
+
+        public int start_ind = 0;
+        public int end_ind = 0;
+
+        
+
         public List<double> total_pl_list = new List<double>();
         public List<double> total_pl_ratio_list = new List<double>();
+        public List<double> total_fund_list = new List<double>();
 
         public SimAccount()
         {
@@ -261,7 +330,45 @@ namespace BTCSIM
         }
 
 
-        /*executeしたにもかかわらず*/
+        /*
+         * * total_capital = initial_capital + total_pl
+         * total_pl = realized_pl + unrealized_pl + total_fee
+         * realized_pl = (exec_price - entry_price) * size
+         * unrealized_pl = (close - entry_price) * size
+         * fee = fee_rate * exec_price * size
+         */
+        private void calc_performance_data(double close)
+        {
+            if (holding_data.holding_side != "")
+            {
+                var price_change_ratio = holding_data.holding_side == "buy" ? (close - holding_data.holding_price) / holding_data.holding_price : (holding_data.holding_price - close) / holding_data.holding_price;
+                performance_data.unrealized_pl = holding_data.holding_side == "buy" ? (close - holding_data.holding_price) * holding_data.holding_size : (holding_data.holding_price - close) * holding_data.holding_size;
+                performance_data.total_pl = performance_data.realized_pl + performance_data.unrealized_pl - performance_data.total_fee;
+                performance_data.total_capital = performance_data.total_pl + performance_data.initial_capital;
+                leverage = holding_data.holding_volume / performance_data.total_capital;
+                //Console.WriteLine("lev="+leverage + ", size=" + holding_data.holding_size + ", price="+holding_data.holding_price +", capital=" +performance_data.total_capital+", close="+close);
+                if (leverage >= leverage_limit)
+                    Console.WriteLine("Too high leverage! lev=" + leverage.ToString());
+            }
+            else
+            {
+                performance_data.unrealized_pl = 0.0;
+                performance_data.unrealized_pl_ratio = 0.0;
+                leverage = 0;
+                performance_data.total_pl = performance_data.realized_pl + performance_data.unrealized_pl - performance_data.total_fee;
+                performance_data.total_capital = performance_data.total_pl + performance_data.initial_capital;
+                //performance_data.unrealized_pl_list = new List<double>();
+            }
+            performance_data.unrealized_pl_ratio = performance_data.unrealized_pl != 0 ? performance_data.unrealized_pl / (performance_data.total_capital - performance_data.unrealized_pl) : 0;
+            performance_data.total_pl_ratio = performance_data.total_pl / performance_data.total_capital;
+            performance_data.unrealized_pl_list.Add(performance_data.unrealized_pl);
+            performance_data.total_capital_list.Add(performance_data.total_capital);
+            total_pl_list.Add(performance_data.total_pl);
+            total_pl_ratio_list.Add(performance_data.total_pl_ratio);            
+        }
+
+
+        
         public void move_to_next(int i, string dt, double open, double high, double low, double close)
         {
             if (start_ind <= 0)
@@ -269,25 +376,13 @@ namespace BTCSIM
             end_ind = i;
             check_cancel(i, dt);
             check_execution(i, dt, open, high, low);
-            holding_data.holding_period = holding_data.holding_i > 0 ? i - holding_data.holding_i : 0;
-            if (holding_data.holding_side != "")
-            {
-                //performance_data.unrealized_pl = holding_data.holding_side == "buy" ? (close - holding_data.holding_price) / holding_data.holding_price * holding_data.holding_size : (holding_data.holding_price - close) / holding_data.holding_price * holding_data.holding_size;
-                performance_data.unrealized_pl = holding_data.holding_side == "buy" ? (close - holding_data.holding_price) * holding_data.holding_size : (holding_data.holding_price - close) * holding_data.holding_size;
-                performance_data.unrealized_pl_list.Add(performance_data.unrealized_pl);
-            }
-            else
-            {
-                performance_data.unrealized_pl = 0;
-                performance_data.unrealized_pl_list = new List<double>();
-            }
-            performance_data.total_pl = performance_data.realized_pl + performance_data.unrealized_pl - performance_data.total_fee;
-            performance_data.total_pl_ratio = performance_data.total_pl / close;
+            holding_data.holding_period = holding_data.holding_initial_i > 0 ? i - holding_data.holding_initial_i : 0;
+            holding_data.holding_volume = holding_data.holding_side != "" ? holding_data.holding_size * close : 0;
+            calc_performance_data(close);
             if (performance_data.num_trade > 0)
                 performance_data.win_rate = Math.Round(Convert.ToDouble(performance_data.num_win) / Convert.ToDouble(performance_data.num_trade), 4);
             log_data.add_log_data(i, dt, "move to next", holding_data, order_data, performance_data);
-            total_pl_list.Add(performance_data.total_pl);
-            total_pl_ratio_list.Add(performance_data.total_pl_ratio);
+            
             log_data.close_log.Add(MarketData.Close[i]);
             if (log_data.buy_points.Keys.Contains(i) == false)
                 log_data.buy_points[i] = 0;
@@ -302,15 +397,16 @@ namespace BTCSIM
             if (holding_data.holding_side != "")
             {
                 calc_executed_pl(close, holding_data.holding_size, i);
-                holding_data = new HoldingData();
+                performance_data.num_trade++;
+                holding_data.holding_period_list.Add(holding_data.holding_period);
+                holding_data.initialize_holding();
                 performance_data.unrealized_pl = 0;
             }
-            performance_data.total_pl = performance_data.realized_pl + performance_data.unrealized_pl - performance_data.total_fee;
-            performance_data.total_pl_ratio = performance_data.total_pl / close;
+            calc_performance_data(close);
+            performance_data.max_dd = total_pl_list.Min();
+            performance_data.max_pl = total_pl_list.Max();
             if (performance_data.num_trade > 0)
                 performance_data.win_rate = Math.Round(Convert.ToDouble(performance_data.num_win) / Convert.ToDouble(performance_data.num_trade), 4);
-            total_pl_list.Add(performance_data.total_pl);
-            total_pl_ratio_list.Add(performance_data.total_pl_ratio);
             log_data.close_log.Add(MarketData.Close[i]);
             if (log_data.buy_points.Keys.Contains(i) == false)
                 log_data.buy_points[i] = 0;
@@ -322,6 +418,7 @@ namespace BTCSIM
         {
             if (size > 0 && (side == "buy" || side == "sell"))
             {
+                //Console.WriteLine("Capital:"+performance_data.total_capital+", Holding:" +holding_data.holding_side+",size=" +holding_data.holding_size+", price="+holding_data.holding_price+", Order:"+ side + ", size="+size +", price="+price);
                 order_data.order_serial_num++;
                 order_data.order_serial_list.Add(order_data.order_serial_num);
                 order_data.order_type[order_data.order_serial_num] = type;
@@ -516,8 +613,9 @@ namespace BTCSIM
             else if (holding_data.holding_size == order_data.order_size[order_serial_num])
             {
                 calc_executed_pl(exec_price, order_data.order_size[order_serial_num], i);
-                //initialize_holding_data();
-                holding_data = new HoldingData();
+                performance_data.num_trade++;
+                holding_data.holding_period_list.Add(holding_data.holding_period);
+                holding_data.initialize_holding();
                 log_data.add_log_data(i, dt, "Exit Order (h=o)", holding_data, order_data, performance_data);
             }
             else if (holding_data.holding_size < order_data.order_size[order_serial_num])
@@ -527,6 +625,7 @@ namespace BTCSIM
                 else
                     performance_data.num_sell++;
                 calc_executed_pl(exec_price, holding_data.holding_size, i);
+                performance_data.num_trade++;
                 holding_data.update_holding(order_data.order_side[order_serial_num], exec_price, order_data.order_size[order_serial_num] - holding_data.holding_size, i);
                 log_data.add_log_data(i, dt, "'Exit & Entry Order (h<o)", holding_data, order_data, performance_data);
             }
@@ -538,11 +637,12 @@ namespace BTCSIM
 
         private void calc_executed_pl(double exec_price, double size, int i)
         {
+            //var pl = holding_data.holding_side == "buy" ? ((exec_price - holding_data.holding_price) / holding_data.holding_price) * size : ((holding_data.holding_price - exec_price) / holding_data.holding_price) * size;
             var pl = holding_data.holding_side == "buy" ? (exec_price - holding_data.holding_price) * size : (holding_data.holding_price - exec_price) * size;
             //Console.WriteLine("pl="+pl.ToString() + ", i="+i.ToString());
             performance_data.realized_pl += Math.Round(pl, 6);
             performance_data.realized_pl_list.Add(Math.Round(pl, 6));
-            performance_data.num_trade++;
+            
             if (pl > 0) { performance_data.num_win++; }
             if (holding_data.holding_side == "buy")
             {

@@ -62,6 +62,25 @@ namespace BTCSIM
 
     class MainClass
     {
+        private static void displaySimResult(SimAccount ac, string title)
+        {
+            Console.WriteLine("pl=" + ac.performance_data.total_pl);
+            Console.WriteLine("pl ratio=" + ac.performance_data.total_pl_ratio);
+            Console.WriteLine("num trade=" + ac.performance_data.num_trade);
+            Console.WriteLine("num market order=" + ac.performance_data.num_maker_order);
+            Console.WriteLine("win rate=" + ac.performance_data.win_rate);
+            Console.WriteLine("sharp_ratio=" + ac.performance_data.sharp_ratio);
+            Console.WriteLine("num_buy=" + ac.performance_data.num_buy);
+            Console.WriteLine("num_sell=" + ac.performance_data.num_sell);
+            Console.WriteLine("buy_pl=" + ac.performance_data.buy_pl_list.Sum());
+            Console.WriteLine("sell_pl=" + ac.performance_data.sell_pl_list.Sum());
+            Console.WriteLine("max_dd=" + ac.performance_data.max_dd);
+            Console.WriteLine("max_pl=" + ac.performance_data.max_pl);
+            Console.WriteLine("ave_holding_period=" + ac.holding_data.holding_period_list.Average());
+            LineChart.DisplayLineChart2(ac.performance_data.total_capital_list, ac.log_data.close_log, ac.log_data.buy_points.Values.ToList(), ac.log_data.sell_points.Values.ToList(), title);
+            System.Diagnostics.Process.Start(@"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", @"./line_chart.html");
+        }
+
         private static SimAccount doSim(int from, int to, int max_amount, int sim_type, int best_island_id, bool display_chart, double nn_threshold)
         {
             Console.WriteLine("Started Read Weight SIM");
@@ -144,10 +163,12 @@ namespace BTCSIM
                 Console.WriteLine("\"win ga\" : do win ga");
                 Console.WriteLine("\"win sim\" : do win sim");
                 Console.WriteLine("\"sa1\" : statistics analysis1");
+                Console.WriteLine("\"sa2\" : statistics analysis2");
+                Console.WriteLine("\"ptlc sim\" : ptlc periodical entry sim");
                 Console.WriteLine("\"write\" : write MarketData");
                 Console.WriteLine("\"test\" : test");
                 key = Console.ReadLine();
-                if (key == "ga" || key == "sim" || key == "mul ga" || key == "mul sim" || key == "win ga" || key == "conti" || key == "win ga" || key == "win sim" || key == "write" || key == "test" || key == "sa1")
+                if (key == "ga" || key == "sim" || key == "mul ga" || key == "mul sim" || key == "win ga" || key == "conti" || key == "win ga" || key == "win sim" || key == "write" || key == "test" || key == "sa1" || key == "sa2" || key == "ptlc sim")
                     break;
             }
 
@@ -159,7 +180,7 @@ namespace BTCSIM
             for (int i = 10; i < 100; i = i + 10) { terms.Add(i); }
             MarketData.initializer(terms);
 
-            var from = 701000;
+            var from = 1000;
             var to = MarketData.Close.Count-1;
             int max_amount = 1;
             var index = new int[] { 0, 0, 0, 1, 1, 0, 0 };
@@ -264,13 +285,24 @@ namespace BTCSIM
             else if(key == "sa1")
             {
                 var sa = new StatisticsAnalysis();
-                //var data_entry_points = Enumerable.Range(0, MarketData.Close.Count).Where(i => i % 10000 == 0).ToList();
-                var data_entry_points = new List<int>();
-                data_entry_points.Add(500000);
-                var entry_num = Enumerable.Range(1, 100).Where(i => i % 5 == 0).ToList();
-                var entry_interval = Enumerable.Range(1, 100).Where(i => i % 5 == 0).ToList();
-                var ptlc_ratio = Enumerable.Range(2, 100).ToList().ConvertAll(x => Math.Round(x * 0.1,1)).ToList();
+                var data_entry_points = Enumerable.Range(0, MarketData.Close.Count).Where(i => i % 1000 == 0).ToList();
+                //var entry_num = Enumerable.Range(1, 100).Where(i => i % 5 == 0).ToList();
+                var entry_num = new List<int>() { 1,5,50,100};
+                //var entry_interval = Enumerable.Range(1, 100).Where(i => i % 5 == 0).ToList();
+                var entry_interval = new List<int>() {1,5,50,100 };
+                //var ptlc_ratio = Enumerable.Range(2, 100).ToList().ConvertAll(x => Math.Round(x * 0.1,1)).ToList();
+                var ptlc_ratio = new List<double>() {0.2, 1, 5, 15 };
                 sa.startAnalysis1(data_entry_points, entry_num, entry_interval, entry_interval, ptlc_ratio);
+            }
+            else if (key == "sa2")
+            {
+                var sa = new StatisticsAnalysis();
+                var leverages = new List<double>() { 0.5,1,1.5,2,2.5,3,5};
+                var entry_num = new List<int>() { 1, 5, 50, 100 };
+                var entry_interval = new List<int>() { 1, 5, 50, 100 };
+                var pt_ratio = new List<double>() { 0.05, 0.07, 0.1, 0.15, 0.2, 0.25 };
+                var lc_ratio = new List<double>() { -0.05, -0.07, -0.1, -0.15, -0.2, -0.25 };
+                sa.startAnalysis2(pt_ratio, lc_ratio, leverages, entry_interval, entry_num);
             }
             else if (key == "conti")
             {
@@ -300,6 +332,19 @@ namespace BTCSIM
                 }
                 Console.WriteLine("Total pl =" + all_pl_list.Last().ToString() + ", num trade=" + all_num_trade.ToString());
                 LineChart.DisplayLineChart(all_pl_list, "from=" + (from + ga_period).ToString() + ", to=" + (conti_from + ga_period + sim_period).ToString() + ", Total pl =" + all_pl_list.Last().ToString() + ", num trade=" + all_num_trade.ToString());
+            }
+            else if(key=="ptlc sim")
+            {
+                var pt = 0.01;
+                var lc = -0.2;
+                var leverage = 5;
+                var side = "buy";
+                var entry_interval_minutes = 10;
+                var entry_num = 10;
+                var ac = new SimAccount();
+                var sim = new Sim();
+                ac = sim.sim_entry_timing_ptlc(from, to, ac, side, leverage, entry_interval_minutes, entry_num, pt, lc);
+                displaySimResult(ac, "ptlc sim from:"+from.ToString() + " to:"+to.ToString()+ ", pl="+ac.performance_data.total_pl.ToString() + ", num="+ac.performance_data.num_trade.ToString());
             }
             else if (key == "write")
             {

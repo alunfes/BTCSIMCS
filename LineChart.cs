@@ -101,10 +101,10 @@ namespace BTCSIM
                 @"<script>" + "\r\n" +
                 @"var barChartData = {" + GenerateNumericalLabel(data) +
                 @"datasets: [" + "\r\n" +
-                generatePlotChart(2, "buy", buy, new int[] { 0, 0, 255 }) +
-                generatePlotChart(2, "sell", sell, new int[] { 255, 0, 0 }) +
+                //generatePlotChart(2, "buy", buy, new int[] { 0, 0, 255 }) +
+                //generatePlotChart(2, "sell", sell, new int[] { 255, 0, 0 }) +
                 generateChart("line", 1, "pl", data, new int[] {30,250,30 }) +
-                generateChart("line", 1, "close", close, new int[] { 250, 30, 250 }) +
+                generateChart("line", 2, "close", close, new int[] { 250, 30, 250 }) +
                 @"]," + "\r\n" + "};" + "\r\n" +
                 @"</script>" + "\r\n" +
 
@@ -119,7 +119,7 @@ namespace BTCSIM
                 @"ticks:{" + "\r\n" +
                 @"max: " +data.Max().ToString()+","+ "\r\n" +
                 @"min: " +data.Min().ToString() + "," + "\r\n" +
-                @"stepSize: 1000" + "\r\n" +
+                @"stepSize: 100000" + "\r\n" +
                 @"}," + "\r\n" +
                 @"}, {" + "\r\n" +
                 @"id: ""y-axis-2""," + "\r\n" +
@@ -127,8 +127,8 @@ namespace BTCSIM
                 @"position: ""right""," + "\r\n" +
                 @"ticks:{" + "\r\n" +
                 @"max:" + close.Max().ToString() + "," + "\r\n" +
-                @"min: 0," + "\r\n" +
-                @"stepSize: 1000" + "\r\n" +
+                @"min: " + close.Min().ToString() + "," + "\r\n" +
+                @"stepSize: 10000" + "\r\n" +
                 @"}," + "\r\n" +
                 @"gridLines:{" + "\r\n" +
                 @"drawOnChartArea: true, " + "\r\n" +
@@ -171,6 +171,7 @@ namespace BTCSIM
                 @"borderColor : 'rgba(" + color[0] + "," + color[1] + "," + color[2] + ",0.8)'," + "\r\n" +
                 //@"backgroundColor: 'rgba(" + color[0] + "," + color[1] + "," + color[2] + ",0.8)'," + "\r\n" +
                 @"pointStyle: 'circle'," + "\r\n" +
+                @"pointRadius: 0, " + "\r\n" +
                 @"borderWidth: 1," + "\r\n" +
                 @"yAxisID: 'y-axis-" + axis_id + "'," + "\r\n" +
                 @"}," + "\r\n";

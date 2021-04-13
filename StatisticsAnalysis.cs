@@ -17,6 +17,61 @@ namespace BTCSIM
         }
 
 
+
+
+        public void startAnalysis2(List<double> pt_list, List<double> lc_list, List<double> leverage_list, List<int> entry_interval_minutes, List<int> entry_num_list)
+        {
+            var buy_ac_list = new List<SimAccount>();
+            var sell_ac_list = new List<SimAccount>();
+            var analytics_params = new List<double[]>();
+            var parameter_id = 0;
+            var num_all_trials = pt_list.Count * lc_list.Count * leverage_list.Count * entry_interval_minutes.Count * entry_num_list.Count;
+            for (int i=0; i<pt_list.Count; i++)
+            {
+                for(int j=0; j<lc_list.Count; j++)
+                {
+                    for(int k=0; k<leverage_list.Count; k++)
+                    {
+                        for(int l=0; l<entry_interval_minutes.Count; l++)
+                        {
+                            for(int m=0; m<entry_num_list.Count; m++)
+                            {
+                                var ac_buy = new SimAccount();
+                                var ac_sell = new SimAccount();
+                                var sim = new Sim();
+                                analytics_params.Add(new double[] { leverage_list[k], Convert.ToDouble(entry_interval_minutes[l]), Convert.ToDouble(entry_num_list[m]), pt_list[i], lc_list[j] });
+                                ac_buy = sim.sim_entry_timing_ptlc(1000, MarketData.Close.Count - 1, ac_buy, "buy", leverage_list[k], entry_interval_minutes[l], entry_num_list[m], pt_list[i], lc_list[j]);
+                                ac_sell = sim.sim_entry_timing_ptlc(1000, MarketData.Close.Count - 1, ac_sell, "sell", leverage_list[k], entry_interval_minutes[l], entry_num_list[m], pt_list[i], lc_list[j]);
+                                buy_ac_list.Add(ac_buy);
+                                sell_ac_list.Add(ac_sell);
+                                var progress_ratio = Math.Round(Convert.ToDouble(parameter_id) / num_all_trials, 4);
+                                Console.WriteLine("************************************  (" + progress_ratio.ToString() + "%)" + parameter_id.ToString() + " / " + num_all_trials.ToString() + "  ************************************");
+                                Console.WriteLine("id=" + parameter_id.ToString() + ", leverage="+ leverage_list[k].ToString()+", entry_num=" + entry_num_list[m].ToString() + ", interval=" + entry_interval_minutes[l].ToString() + ", pt ratio=" + pt_list[i].ToString() + ", lc ratio=" + lc_list[j].ToString());
+                                Console.WriteLine("BUY: " + "holding period=" + ac_buy.holding_data.holding_period_list.Average().ToString() + ", num trade=" + ac_buy.performance_data.num_trade+ ", win rate=" + ac_buy.performance_data.win_rate.ToString() + ", pl=" + ac_buy.performance_data.total_pl.ToString() + ", max_dd=" + ac_buy.performance_data.max_dd.ToString() + ", max pl=" + ac_buy.performance_data.max_pl);
+                                Console.WriteLine("SEL: " + "holding period=" + ac_sell.holding_data.holding_period_list.Average().ToString() + ", num trade=" + ac_sell.performance_data.num_trade + ", win rate=" + ac_sell.performance_data.win_rate.ToString() + ", pl=" + ac_sell.performance_data.total_pl.ToString() + ", max_dd=" + ac_sell.performance_data.max_dd.ToString() + ", max pl=" + ac_sell.performance_data.max_pl);
+                                parameter_id++;
+                            }
+                        }
+                    }
+                }
+            }
+            Console.WriteLine("Writing results...");
+            using (StreamWriter sw = new StreamWriter("statistics analysis2" + ".csv", false, Encoding.UTF8))
+            {
+                sw.WriteLine("ID,leverage,entry num,entry interval,pt,lc,buy holding period,sell holding period,buy pl,sell pl,buy num trade,buy win rate,sell num trade,sell win rate,buy max dd,sell max dd,buy max pl,sell max pl");
+                for (int i = 0; i < parameter_id; i++)
+                {
+                    sw.WriteLine(i.ToString() + "," + analytics_params[i][0].ToString() + "," + analytics_params[i][2].ToString() + "," + analytics_params[i][1].ToString() + "," + analytics_params[i][3].ToString() + "," + analytics_params[i][4].ToString() + "," +
+                        buy_ac_list[i].holding_data.holding_period_list.Average().ToString() + "," + sell_ac_list[i].holding_data.holding_period_list.Average().ToString() + "," + buy_ac_list[i].performance_data.total_pl.ToString() + "," + sell_ac_list[i].performance_data.total_pl.ToString() + "," +
+                        buy_ac_list[i].performance_data.win_rate.ToString() + "," + sell_ac_list[i].performance_data.win_rate.ToString() + "," + buy_ac_list[i].performance_data.max_dd.ToString() + "," + sell_ac_list[i].performance_data.max_dd.ToString() + "," +
+                        buy_ac_list[i].performance_data.max_pl.ToString() + "," + sell_ac_list[i].performance_data.max_pl.ToString());
+                }
+            }
+            Console.WriteLine("Completed Statistics Analysis2");
+
+        }
+
+
         /*
          * ・エントリー方法と利確・損切りタイミングの組み合わせとパフォーマンスの調査
          * side: buy, sell
@@ -26,6 +81,8 @@ namespace BTCSIM
          * Results:
          * parameter_data <analysis_id, [parameter_indexes]>
          * performance_data <analysis_id, [performance_data]>
+         * 
+         * 
          * 
          */
         public void startAnalysis1(List<int> data_entry_point, List<int> entry_num, List<int> entry_interval_miniute, List<int> entry_interval_price, List<double> ptlc_ratio)
@@ -72,6 +129,7 @@ namespace BTCSIM
                                 buy_performance_data[dt_ind] = calc_analysis1(max_size, "buy", 0, data_entry_point[dt_ind], entry_num[i], entry_interval_miniute[j], ptlc_ratio[k], ptlc_ratio[l]);
                                 sell_performance_data[dt_ind] = calc_analysis1(max_size, "sell", 0, data_entry_point[dt_ind], entry_num[i], entry_interval_miniute[j], ptlc_ratio[k], ptlc_ratio[l]);
                             }
+                            
                             paremeter_data[parameter_id] = new int[6] {Convert.ToInt32(max_size), 0, i, j, k, l };
                             var converted_buy_performance = convert_res(buy_performance_data);
                             var converted_sell_performance = convert_res(sell_performance_data);
@@ -133,7 +191,6 @@ namespace BTCSIM
             }
             Console.WriteLine("Completed Statistics Analysis1");
         }
-
 
         private (List<double>, List<double>, List<double>, List<double>, double) convert_res(ConcurrentDictionary<int, double[]> pd)
         {
@@ -219,8 +276,10 @@ namespace BTCSIM
                     return new double[] { pl_ratio, Convert.ToDouble(current_ind - last_entry_ind), max_dd, max_pl };
                 }
             }
-
         }
+
+
+
 
 
 
