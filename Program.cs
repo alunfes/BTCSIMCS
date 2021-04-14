@@ -297,11 +297,16 @@ namespace BTCSIM
             else if (key == "sa2")
             {
                 var sa = new StatisticsAnalysis();
-                var leverages = new List<double>() { 0.5,1,1.5,2,2.5,3,5};
+                /*var leverages = new List<double>() { 0.5,1,1.5,2,2.5,3,5};
                 var entry_num = new List<int>() { 1, 5, 50, 100 };
                 var entry_interval = new List<int>() { 1, 5, 50, 100 };
                 var pt_ratio = new List<double>() { 0.05, 0.07, 0.1, 0.15, 0.2, 0.25 };
-                var lc_ratio = new List<double>() { -0.05, -0.07, -0.1, -0.15, -0.2, -0.25 };
+                var lc_ratio = new List<double>() { -0.05, -0.07, -0.1, -0.15, -0.2, -0.25 };*/
+                var leverages = new List<double>() { 0.5, 5 };
+                var entry_num = new List<int>() { 1, 5};
+                var entry_interval = new List<int>() { 1, 5};
+                var pt_ratio = new List<double>() { 0.05, 0.15 };
+                var lc_ratio = new List<double>() { -0.05, -0.15 };
                 sa.startAnalysis2(pt_ratio, lc_ratio, leverages, entry_interval, entry_num);
             }
             else if (key == "conti")
