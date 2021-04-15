@@ -28,6 +28,8 @@ namespace BTCSIM
             var sell_holding_periods = new ConcurrentDictionary<int, double>();
             var buy_total_pl = new ConcurrentDictionary<int, double>();
             var sell_total_pl = new ConcurrentDictionary<int, double>();
+            var buy_num_trade = new ConcurrentDictionary<int, int>();
+            var sell_num_trade = new ConcurrentDictionary<int, int>();
             var buy_win_rate = new ConcurrentDictionary<int, double>();
             var sell_win_rate = new ConcurrentDictionary<int, double>();
             var buy_max_dd = new ConcurrentDictionary<int, double>();
@@ -56,6 +58,8 @@ namespace BTCSIM
                                 sell_holding_periods[parameter_id] = Math.Round(ac_sell.holding_data.holding_period_list.Average(),1);
                                 buy_total_pl[parameter_id] = Math.Round(ac_buy.performance_data.total_pl,1);
                                 sell_total_pl[parameter_id] = Math.Round(ac_sell.performance_data.total_pl,1);
+                                buy_num_trade[parameter_id] = ac_buy.performance_data.num_trade;
+                                sell_num_trade[parameter_id] = ac_sell.performance_data.num_trade;
                                 buy_win_rate[parameter_id] = ac_buy.performance_data.win_rate;
                                 sell_win_rate[parameter_id] = ac_sell.performance_data.win_rate;
                                 buy_max_dd[parameter_id] = ac_buy.performance_data.max_dd;
@@ -82,7 +86,7 @@ namespace BTCSIM
                 for (int i = 0; i < parameter_id; i++)
                 {
                     sw.WriteLine(i.ToString() + "," + analytics_params[i][0].ToString() + "," + analytics_params[i][2].ToString() + "," + analytics_params[i][1].ToString() + "," + analytics_params[i][3].ToString() + "," + analytics_params[i][4].ToString() + "," +
-                        buy_holding_periods[i].ToString() + "," + sell_holding_periods[i].ToString() + "," + buy_total_pl[i].ToString() + "," + sell_total_pl[i].ToString() + "," +
+                        buy_holding_periods[i].ToString() + "," + sell_holding_periods[i].ToString() + "," + buy_total_pl[i].ToString() + "," + sell_total_pl[i].ToString() + "," + buy_num_trade[i].ToString() + "," + sell_num_trade[i].ToString() + ","+
                         buy_win_rate[i].ToString() + "," + sell_win_rate[i].ToString() + "," + buy_max_dd[i].ToString() + "," + sell_max_dd[i].ToString() + "," + buy_max_pl[i].ToString() + "," + sell_max_pl[i].ToString()+","+buy_num_force_exit[i].ToString()+","+sell_num_force_exit[i].ToString());
                 }
             }
