@@ -32,6 +32,7 @@ namespace BTCSIM
         public int num_force_exit { get; set; }
 
         public int num_trade { get; set; }
+        public List<int> num_trade_list { get; set; }
         public int num_buy { get; set; }
         public int num_sell { get; set; }
         public int num_maker_order { get; set; }
@@ -58,6 +59,7 @@ namespace BTCSIM
             unrealized_pl_ratio = 0.0; //
             unrealized_pl_ratio_list = new List<double>();
             num_trade = 0;
+            num_trade_list = new List<int>();
             num_buy = 0;
             num_sell = 0;
             win_rate = 0;
@@ -368,7 +370,7 @@ namespace BTCSIM
                 //performance_data.unrealized_pl_list = new List<double>();
             }
             performance_data.unrealized_pl_ratio = performance_data.unrealized_pl != 0 ? performance_data.unrealized_pl / (performance_data.total_capital - performance_data.unrealized_pl) : 0;
-            performance_data.total_pl_ratio = performance_data.total_pl / performance_data.total_capital;
+            performance_data.total_pl_ratio = (performance_data.total_capital - performance_data.initial_capital) / performance_data.initial_capital;
             performance_data.unrealized_pl_list.Add(performance_data.unrealized_pl);
             performance_data.total_capital_list.Add(performance_data.total_capital);
             performance_data.unrealized_pl_ratio_list.Add(performance_data.unrealized_pl_ratio);
@@ -377,6 +379,7 @@ namespace BTCSIM
 
             if (performance_data.unrealized_pl_ratio < -0.3)
                 Console.WriteLine("high unrealized pl ratio!");
+            performance_data.num_trade_list.Add(performance_data.num_trade);
         }
 
 

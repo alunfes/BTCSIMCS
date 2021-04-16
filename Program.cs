@@ -77,7 +77,11 @@ namespace BTCSIM
             Console.WriteLine("max_dd=" + ac.performance_data.max_dd);
             Console.WriteLine("max_pl=" + ac.performance_data.max_pl);
             Console.WriteLine("ave_holding_period=" + ac.holding_data.holding_period_list.Average());
-            LineChart.DisplayLineChart2(ac.performance_data.total_capital_list, ac.log_data.close_log, ac.log_data.buy_points.Values.ToList(), ac.log_data.sell_points.Values.ToList(), title);
+            //LineChart.DisplayLineChart2(ac.performance_data.total_capital_list, ac.log_data.close_log, ac.log_data.buy_points.Values.ToList(), ac.log_data.sell_points.Values.ToList(), title);
+            var table_labels = new List<string>() {"PL Ratio", "Num Trade", "Win Rate", "Max DD", "Max PL", "Ave Holding Period", "Num Force Exit"};
+            var table_data = new List<string>() {Math.Round(ac.performance_data.total_pl_ratio,4).ToString(), ac.performance_data.num_trade.ToString(), Math.Round(ac.performance_data.win_rate,4).ToString(), Math.Round(ac.performance_data.max_dd,4).ToString(),
+            Math.Round(ac.performance_data.max_pl,4).ToString(), Math.Round(ac.holding_data.holding_period_list.Average(),1).ToString(), ac.performance_data.num_force_exit.ToString()};
+            LineChart.DisplayLineChart3(ac.performance_data.total_capital_list, ac.log_data.close_log, ac.performance_data.num_trade_list, table_labels, table_data, "from="+ac.start_ind.ToString()+", to="+ac.end_ind.ToString());
             System.Diagnostics.Process.Start(@"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", @"./line_chart.html");
         }
 
@@ -340,12 +344,12 @@ namespace BTCSIM
             }
             else if(key=="ptlc sim")
             {
-                var pt = 0.01;
+                var pt = 0.25;
                 var lc = -0.2;
-                var leverage = 5;
+                var leverage = 3;
                 var side = "buy";
-                var entry_interval_minutes = 10;
-                var entry_num = 10;
+                var entry_interval_minutes = 5;
+                var entry_num = 100;
                 var ac = new SimAccount();
                 var sim = new Sim();
                 ac = sim.sim_entry_timing_ptlc(from, to, ac, side, leverage, entry_interval_minutes, entry_num, pt, lc);
