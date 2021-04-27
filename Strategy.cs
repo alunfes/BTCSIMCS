@@ -345,6 +345,46 @@ namespace BTCSIM
 
 
 
+        public StrategyActionData entryTimingPTLCPriceChangeStrategy(int i, double max_amount, SimAccount ac, int num_entry, int entry_interval, double pt_ratio, double lc_ratio, int buy_price_change_minutes, double buy_price_change_ratio, int sell_price_change_minutes, double sell_price_change_ratio)
+        {
+            var ad = new StrategyActionData();
+            var a = max_amount / (Convert.ToDouble(1 + num_entry) * Convert.ToDouble(num_entry) / 2.0);
+            var entry_amount = (ac.holding_data.holding_entry_num + 1) * a;
+
+            if (ac.holding_data.holding_entry_num >= num_entry - 1)
+                entry_amount = max_amount - ac.holding_data.holding_size;
+            var price_change_trigger = "";
+            if ((MarketData.Close[i] - MarketData.Close[i - buy_price_change_minutes]) / MarketData.Close[i - buy_price_change_minutes] <= buy_price_change_ratio)
+                price_change_trigger = "buy";
+            else if ((MarketData.Close[i] - MarketData.Close[i - sell_price_change_minutes]) / MarketData.Close[i - sell_price_change_minutes] >= sell_price_change_ratio)
+                price_change_trigger = "sell";
+            var otype = "market";
+
+            //0:pt
+            if (ac.holding_data.holding_side != "" && ac.performance_data.unrealized_pl_ratio >= pt_ratio)
+            {
+                ad.add_action("entry", ac.holding_data.holding_side == "buy" ? "sell" : "buy", otype, 0, ac.holding_data.holding_size, -1, "0. Profit Taking");
+            }
+            //1:lc
+            else if (ac.holding_data.holding_side != "" && ac.performance_data.unrealized_pl_ratio <= lc_ratio)
+            {
+                ad.add_action("entry", ac.holding_data.holding_side == "buy" ? "sell" : "buy", otype, 0, ac.holding_data.holding_size, -1, "1. Loss Cut");
+            }
+            //2:Entry
+            else if (price_change_trigger != "" && ac.holding_data.holding_entry_num < num_entry && ac.holding_data.holding_size < max_amount && i - ac.holding_data.holding_i >= entry_interval)
+            {
+                ad.add_action("entry", price_change_trigger, otype, 0, entry_amount, -1, "2. Entry");
+            }
+            //3:Holding max amount, no action
+            else if (ac.holding_data.holding_size < max_amount)
+            {
+
+            }
+            return ad;
+        }
+
+
+
 
         /*
          buy / sellでエントリー or exitして、常にpositionを保有し続ける。

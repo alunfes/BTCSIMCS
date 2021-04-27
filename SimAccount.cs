@@ -655,14 +655,13 @@ namespace BTCSIM
             }
             else if (holding_data.holding_size > order_data.order_size[order_serial_num])
             {
-                calc_executed_pl(exec_price, order_data.order_size[order_serial_num], i);
+                calc_executed_pl(exec_price, order_data.order_size[order_serial_num], i, false);
                 holding_data.update_holding(holding_data.holding_side, holding_data.holding_price, holding_data.holding_size - order_data.order_size[order_serial_num], i);
                 log_data.add_log_data(i, dt, "Exit Order (h>o)", holding_data, order_data, performance_data);
             }
             else if (holding_data.holding_size == order_data.order_size[order_serial_num])
             {
-                calc_executed_pl(exec_price, order_data.order_size[order_serial_num], i);
-                performance_data.num_trade++;
+                calc_executed_pl(exec_price, order_data.order_size[order_serial_num], i, true);
                 holding_data.holding_period_list.Add(holding_data.holding_period);
                 holding_data.initialize_holding();
                 log_data.add_log_data(i, dt, "Exit Order (h=o)", holding_data, order_data, performance_data);
@@ -673,8 +672,8 @@ namespace BTCSIM
                     performance_data.num_buy++;
                 else
                     performance_data.num_sell++;
-                calc_executed_pl(exec_price, holding_data.holding_size, i);
-                performance_data.num_trade++;
+                calc_executed_pl(exec_price, holding_data.holding_size, i, true);
+                
                 holding_data.update_holding(order_data.order_side[order_serial_num], exec_price, order_data.order_size[order_serial_num] - holding_data.holding_size, i);
                 log_data.add_log_data(i, dt, "'Exit & Entry Order (h<o)", holding_data, order_data, performance_data);
             }
@@ -684,15 +683,19 @@ namespace BTCSIM
             }
         }
 
-        private void calc_executed_pl(double exec_price, double size, int i)
+        private void calc_executed_pl(double exec_price, double size, int i, bool count_num_trade)
         {
             //var pl = holding_data.holding_side == "buy" ? ((exec_price - holding_data.holding_price) / holding_data.holding_price) * size : ((holding_data.holding_price - exec_price) / holding_data.holding_price) * size;
             var pl = holding_data.holding_side == "buy" ? (exec_price - holding_data.holding_price) * size : (holding_data.holding_price - exec_price) * size;
             //Console.WriteLine("pl="+pl.ToString() + ", i="+i.ToString());
             performance_data.realized_pl += Math.Round(pl, 6);
             performance_data.realized_pl_list.Add(Math.Round(pl, 6));
-            
-            if (pl > 0) { performance_data.num_win++; }
+
+            if (count_num_trade)
+            {
+                performance_data.num_trade++;
+                if (pl > 0) { performance_data.num_win++; }
+            }
             if (holding_data.holding_side == "buy")
             {
                 performance_data.buy_pl_list.Add(Math.Round(pl, 6));

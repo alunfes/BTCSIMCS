@@ -175,5 +175,26 @@ namespace BTCSIM
                 Console.WriteLine("Invalid side! " + side);
             return ac;
         }
+
+
+        //エントリータイミングをx分にy%以上変動した時などに予め限定してエントリーする戦略
+        public SimAccount sim_entry_timing_ptlc_price_change(int from, int to, SimAccount ac, double max_leverage, int entry_interval_miniute, int entry_num, double pt_ratio, double lc_ratio, int buy_price_change_minutes, double buy_price_change_ratio, int sell_price_change_minutes, double sell_price_change_ratio)
+        {
+            var strategy = new Strategy();
+            for (int i = from; i < to - 1; i++)
+            {
+                var max_size = max_leverage * ac.performance_data.total_capital / MarketData.Close[i]; //常にレバ２倍になるようにサイズを決める
+                var actions = strategy.entryTimingPTLCPriceChangeStrategy(i, max_size, ac, entry_num, entry_interval_miniute, pt_ratio, lc_ratio, buy_price_change_minutes, buy_price_change_ratio, sell_price_change_minutes, sell_price_change_ratio);
+                for (int j = 0; j < actions.action.Count; j++)
+                {
+                    if (actions.action[j] == "entry")
+                        ac.entry_order(actions.order_type[j], actions.order_side[j], actions.order_size[j], actions.order_price[j], i, MarketData.Dt[i].ToString(), actions.order_message[j]);
+                }
+                ac.move_to_next(i + 1, MarketData.Dt[i + 1].ToString(), MarketData.Open[i + 1], MarketData.High[i + 1], MarketData.Low[i + 1], MarketData.Close[i + 1]);
+            }
+            ac.last_day(to, MarketData.Close[to]);
+            ac.calc_sharp_ratio();
+            return ac;
+        }
     }
 }

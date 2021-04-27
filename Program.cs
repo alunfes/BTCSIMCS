@@ -168,11 +168,12 @@ namespace BTCSIM
                 Console.WriteLine("\"win sim\" : do win sim");
                 Console.WriteLine("\"sa1\" : statistics analysis1");
                 Console.WriteLine("\"sa2\" : statistics analysis2");
+                Console.WriteLine("\"sa3\" : statistics analysis3");
                 Console.WriteLine("\"ptlc sim\" : ptlc periodical entry sim");
                 Console.WriteLine("\"write\" : write MarketData");
                 Console.WriteLine("\"test\" : test");
                 key = Console.ReadLine();
-                if (key == "ga" || key == "sim" || key == "mul ga" || key == "mul sim" || key == "win ga" || key == "conti" || key == "win ga" || key == "win sim" || key == "write" || key == "test" || key == "sa1" || key == "sa2" || key == "ptlc sim")
+                if (key == "ga" || key == "sim" || key == "mul ga" || key == "mul sim" || key == "win ga" || key == "conti" || key == "win ga" || key == "win sim" || key == "write" || key == "test" || key == "sa1" || key == "sa2" || key == "sa3" || key == "ptlc sim")
                     break;
             }
 
@@ -313,6 +314,22 @@ namespace BTCSIM
                 var lc_ratio = new List<double>() { -0.05, -0.15 };
                 sa.startAnalysis2(pt_ratio, lc_ratio, leverages, entry_interval, entry_num);
             }
+            else if (key == "sa3")
+            {
+                var sa = new StatisticsAnalysis();
+                var buy_price_change_minutes = new List<int>() { 10, 30, 60, 90, 300, 600};
+                var buy_price_change_ratio = new List<double>() { -0.01, -0.05, -0.07, -0.1, -0.15, -0.25};
+                var sell_price_change_minutes = new List<int>() { 10, 30, 60, 90, 300, 600 };
+                var sell_price_change_ratio = new List<double>() { 0.01, 0.05, 0.07, 0.1, 0.15, 0.25 };
+                var param_data = new List<Dictionary<string, double>>();
+                var param1 = new Dictionary<string, double>(){ { "leverage", 3.0},{ "entry_num", 100},{ "entry_interval", 5}, { "pt", 0.25 },{ "lc", -0.2 }};
+                var param2 = new Dictionary<string, double>() { { "leverage", 2.0 }, { "entry_num", 50 }, { "entry_interval", 5 }, { "pt", 0.07 }, { "lc", -0.2 } };
+                var param3 = new Dictionary<string, double>() { { "leverage", 2.0 }, { "entry_num", 5 }, { "entry_interval", 5 }, { "pt", 0.15 }, { "lc", -0.2 } };
+                param_data.Add(param1);
+                param_data.Add(param2);
+                param_data.Add(param3);
+                sa.startAnalysis3(param_data, buy_price_change_minutes, buy_price_change_ratio, sell_price_change_minutes, sell_price_change_ratio);
+            }
             else if (key == "conti")
             {
                 int num_island = 2;
@@ -344,12 +361,12 @@ namespace BTCSIM
             }
             else if(key=="ptlc sim")
             {
-                var pt = 0.25;
+                var pt = 0.07;
                 var lc = -0.2;
-                var leverage = 3;
+                var leverage = 2;
                 var side = "buy";
                 var entry_interval_minutes = 5;
-                var entry_num = 100;
+                var entry_num = 50;
                 var ac = new SimAccount();
                 var sim = new Sim();
                 ac = sim.sim_entry_timing_ptlc(from, to, ac, side, leverage, entry_interval_minutes, entry_num, pt, lc);

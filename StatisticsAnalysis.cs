@@ -17,8 +17,6 @@ namespace BTCSIM
         }
 
 
-
-
         public void startAnalysis2(List<double> pt_list, List<double> lc_list, List<double> leverage_list, List<int> entry_interval_minutes, List<int> entry_num_list)
         {
             var analytics_params = new List<double[]>();
@@ -82,7 +80,7 @@ namespace BTCSIM
             Console.WriteLine("Writing results...");
             using (StreamWriter sw = new StreamWriter("statistics analysis2" + ".csv", false, Encoding.UTF8))
             {
-                sw.WriteLine("ID,leverage,entry num,entry interval,pt,lc,buy holding period,sell holding period,buy pl,sell pl,buy num trade,buy win rate,sell num trade,sell win rate,buy max dd,sell max dd,buy max pl,sell max pl,buy_num_force_exit,sell_num_force_exit");
+                sw.WriteLine("ID,leverage,entry num,entry interval,pt,lc,buy holding period,sell holding period,buy pl,sell pl,buy num trade,sell num trade,buy win rate,sell win rate,buy max dd,sell max dd,buy max pl,sell max pl,buy_num_force_exit,sell_num_force_exit");
                 for (int i = 0; i < parameter_id; i++)
                 {
                     sw.WriteLine(i.ToString() + "," + analytics_params[i][0].ToString() + "," + analytics_params[i][2].ToString() + "," + analytics_params[i][1].ToString() + "," + analytics_params[i][3].ToString() + "," + analytics_params[i][4].ToString() + "," +
@@ -91,8 +89,71 @@ namespace BTCSIM
                 }
             }
             Console.WriteLine("Completed Statistics Analysis2");
-
         }
+
+
+
+        public void startAnalysis3(List<Dictionary<string, double>> param_data, List<int> buy_price_change_minutes, List<double> buy_price_change_ratio, List<int> sell_price_change_minutes, List<double> sell_price_change_ratio)
+        {
+            var analytics_params = new List<double[]>();
+            var parameter_id = 0;
+            var num_all_trials = param_data.Count * buy_price_change_minutes.Count * buy_price_change_ratio.Count * sell_price_change_minutes.Count * sell_price_change_ratio.Count;
+            var holding_periods = new ConcurrentDictionary<int, double>();
+            var total_pl = new ConcurrentDictionary<int, double>();
+            var num_trade = new ConcurrentDictionary<int, int>();
+            var win_rate = new ConcurrentDictionary<int, double>();
+            var max_dd = new ConcurrentDictionary<int, double>();
+            var max_pl = new ConcurrentDictionary<int, double>();
+            var num_force_exit = new ConcurrentDictionary<int, int>();
+            for (int i = 0; i < param_data.Count; i++)
+            {
+                for (int j = 0; j < buy_price_change_minutes.Count; j++)
+                {
+                    for (int k = 0; k < buy_price_change_ratio.Count; k++)
+                    {
+                        for (int l = 0; l < sell_price_change_minutes.Count; l++)
+                        {
+                            for (int m = 0; m < sell_price_change_ratio.Count; m++)
+                            {
+                                var ac = new SimAccount();
+                                var sim = new Sim();
+                                var entry_num = Convert.ToInt32(param_data[i]["entry_num"]);
+                                var entry_interval = Convert.ToInt32(param_data[i]["entry_interval"]);
+                                var leverage = param_data[i]["leverage"];
+                                var pt = param_data[i]["pt"];
+                                var lc = param_data[i]["lc"];
+                                analytics_params.Add(new double[] { leverage, Convert.ToDouble(entry_num), Convert.ToDouble(entry_interval), pt, lc, Convert.ToDouble(buy_price_change_minutes[j]), buy_price_change_ratio [k], Convert.ToDouble(sell_price_change_minutes[l]), sell_price_change_ratio[m]});
+                                ac = sim.sim_entry_timing_ptlc_price_change(1000, MarketData.Close.Count - 1, ac, leverage, entry_interval, entry_num, pt, lc, buy_price_change_minutes[j], buy_price_change_ratio[k], sell_price_change_minutes[l], sell_price_change_ratio[m]);
+                                holding_periods[parameter_id] = Math.Round(ac.holding_data.holding_period_list.Average(), 1);
+                                total_pl[parameter_id] = Math.Round(ac.performance_data.total_pl, 1);
+                                num_trade[parameter_id] = ac.performance_data.num_trade;
+                                win_rate[parameter_id] = ac.performance_data.win_rate;
+                                max_dd[parameter_id] = ac.performance_data.max_dd;
+                                max_pl[parameter_id] = ac.performance_data.max_pl;
+                                num_force_exit[parameter_id] = ac.performance_data.num_force_exit;
+                                var progress_ratio = Math.Round(Convert.ToDouble(parameter_id) / num_all_trials, 4);
+                                Console.WriteLine("************************************  (" + progress_ratio.ToString() + "%)" + parameter_id.ToString() + " / " + num_all_trials.ToString() + "  ************************************");
+                                Console.WriteLine("id=" + parameter_id.ToString() + ", leverage=" + leverage.ToString() + ", entry_num=" + entry_num.ToString() + ", interval=" + entry_interval.ToString() + ", pt ratio=" + pt.ToString() + ", lc ratio=" + lc.ToString() +", buy change minute=" + buy_price_change_minutes[j].ToString() +", buy change ratio="+buy_price_change_ratio[k].ToString()+ ", sell change minute="+sell_price_change_minutes[l].ToString() +", sell change ratio="+sell_price_change_ratio[m].ToString());
+                                Console.WriteLine("holding period=" + ac.holding_data.holding_period_list.Average().ToString() + ", num trade=" + ac.performance_data.num_trade + ", win rate=" + ac.performance_data.win_rate.ToString() + ", pl=" + ac.performance_data.total_pl.ToString() + ", max_dd=" + ac.performance_data.max_dd.ToString() + ", max pl=" + ac.performance_data.max_pl);
+                                parameter_id++;
+                            }
+                        }
+                    }
+                }
+            }
+            Console.WriteLine("Writing results...");
+            using (StreamWriter sw = new StreamWriter("statistics analysis3" + ".csv", false, Encoding.UTF8))
+            {
+                sw.WriteLine("ID,leverage,entry num,entry interval,pt,lc,buy change minutes,buy change ratio,sell change minutes,sell change ratio,holding period,pl,num trade,win rate,max dd,max pl,num_force_exit");
+                for (int i = 0; i < parameter_id; i++)
+                {
+                    sw.WriteLine(i.ToString() + "," + analytics_params[i][0].ToString() + "," + analytics_params[i][1].ToString() + "," + analytics_params[i][2].ToString() + "," + analytics_params[i][3].ToString() + "," + analytics_params[i][4].ToString() + "," + analytics_params[i][5].ToString() + "," + analytics_params[i][6].ToString() + "," + analytics_params[i][7].ToString() + "," + analytics_params[i][8].ToString() + "," +
+                        holding_periods[i].ToString() + "," + holding_periods[i].ToString() + "," + total_pl[i].ToString() + "," + total_pl[i].ToString() + "," + num_trade[i].ToString() + "," + win_rate[i].ToString() + "," + max_dd[i].ToString() + "," + "," + max_pl[i].ToString() + ","  + "," + num_force_exit[i].ToString());
+                }
+            }
+            Console.WriteLine("Completed Statistics Analysis3");
+        }
+
 
 
         /*
