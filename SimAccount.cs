@@ -436,8 +436,7 @@ namespace BTCSIM
             order_data = new OrderData();
             if (holding_data.holding_side != "")
             {
-                calc_executed_pl(close, holding_data.holding_size, i);
-                performance_data.num_trade++;
+                calc_executed_pl(close, holding_data.holding_size, i, true);
                 holding_data.holding_period_list.Add(holding_data.holding_period);
                 holding_data.initialize_holding();
                 performance_data.unrealized_pl = 0;

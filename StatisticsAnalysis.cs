@@ -148,7 +148,7 @@ namespace BTCSIM
                 for (int i = 0; i < parameter_id; i++)
                 {
                     sw.WriteLine(i.ToString() + "," + analytics_params[i][0].ToString() + "," + analytics_params[i][1].ToString() + "," + analytics_params[i][2].ToString() + "," + analytics_params[i][3].ToString() + "," + analytics_params[i][4].ToString() + "," + analytics_params[i][5].ToString() + "," + analytics_params[i][6].ToString() + "," + analytics_params[i][7].ToString() + "," + analytics_params[i][8].ToString() + "," +
-                        holding_periods[i].ToString() + "," + holding_periods[i].ToString() + "," + total_pl[i].ToString() + "," + total_pl[i].ToString() + "," + num_trade[i].ToString() + "," + win_rate[i].ToString() + "," + max_dd[i].ToString() + "," + "," + max_pl[i].ToString() + ","  + "," + num_force_exit[i].ToString());
+                        holding_periods[i].ToString() + "," + total_pl[i].ToString()  + "," + num_trade[i].ToString() + "," + win_rate[i].ToString() + "," + max_dd[i].ToString() + "," + max_pl[i].ToString() +"," + num_force_exit[i].ToString());
                 }
             }
             Console.WriteLine("Completed Statistics Analysis3");

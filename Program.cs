@@ -78,9 +78,9 @@ namespace BTCSIM
             Console.WriteLine("max_pl=" + ac.performance_data.max_pl);
             Console.WriteLine("ave_holding_period=" + ac.holding_data.holding_period_list.Average());
             //LineChart.DisplayLineChart2(ac.performance_data.total_capital_list, ac.log_data.close_log, ac.log_data.buy_points.Values.ToList(), ac.log_data.sell_points.Values.ToList(), title);
-            var table_labels = new List<string>() {"PL Ratio", "Num Trade", "Win Rate", "Max DD", "Max PL", "Ave Holding Period", "Num Force Exit"};
+            var table_labels = new List<string>() {"PL Ratio", "Num Trade", "Win Rate", "Max DD", "Max PL", "Ave Buy PL","Ave Sell PL","Ave Holding Period", "Num Force Exit"};
             var table_data = new List<string>() {Math.Round(ac.performance_data.total_pl_ratio,4).ToString(), ac.performance_data.num_trade.ToString(), Math.Round(ac.performance_data.win_rate,4).ToString(), Math.Round(ac.performance_data.max_dd,4).ToString(),
-            Math.Round(ac.performance_data.max_pl,4).ToString(), Math.Round(ac.holding_data.holding_period_list.Average(),1).ToString(), ac.performance_data.num_force_exit.ToString()};
+            Math.Round(ac.performance_data.max_pl,4).ToString(), Math.Round(ac.performance_data.buy_pl_list.Sum() / Convert.ToDouble(ac.performance_data.buy_pl_list.Count), 4).ToString(), Math.Round(ac.performance_data.sell_pl_list.Sum() / Convert.ToDouble(ac.performance_data.sell_pl_list.Count), 4).ToString(), Math.Round(ac.holding_data.holding_period_list.Average(),1).ToString(), ac.performance_data.num_force_exit.ToString()};
             LineChart.DisplayLineChart3(ac.performance_data.total_capital_list, ac.log_data.close_log, ac.performance_data.num_trade_list, table_labels, table_data, "from="+ac.start_ind.ToString()+", to="+ac.end_ind.ToString());
             System.Diagnostics.Process.Start(@"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", @"./line_chart.html");
         }
@@ -170,10 +170,11 @@ namespace BTCSIM
                 Console.WriteLine("\"sa2\" : statistics analysis2");
                 Console.WriteLine("\"sa3\" : statistics analysis3");
                 Console.WriteLine("\"ptlc sim\" : ptlc periodical entry sim");
+                Console.WriteLine("\"pchange sim\" : price change entry param sim");
                 Console.WriteLine("\"write\" : write MarketData");
                 Console.WriteLine("\"test\" : test");
                 key = Console.ReadLine();
-                if (key == "ga" || key == "sim" || key == "mul ga" || key == "mul sim" || key == "win ga" || key == "conti" || key == "win ga" || key == "win sim" || key == "write" || key == "test" || key == "sa1" || key == "sa2" || key == "sa3" || key == "ptlc sim")
+                if (key == "ga" || key == "sim" || key == "mul ga" || key == "mul sim" || key == "win ga" || key == "conti" || key == "win ga" || key == "win sim" || key == "write" || key == "test" || key == "sa1" || key == "sa2" || key == "sa3" || key == "ptlc sim" || key == "pchange sim")
                     break;
             }
 
@@ -371,6 +372,22 @@ namespace BTCSIM
                 var sim = new Sim();
                 ac = sim.sim_entry_timing_ptlc(from, to, ac, side, leverage, entry_interval_minutes, entry_num, pt, lc);
                 displaySimResult(ac, "ptlc sim from:"+from.ToString() + " to:"+to.ToString()+ ", pl="+ac.performance_data.total_pl.ToString() + ", num="+ac.performance_data.num_trade.ToString());
+            }
+            else if (key == "pchange sim")
+            {
+                var pt = 0.15;
+                var lc = -0.2;
+                var leverage = 2;
+                var entry_interval_minutes = 5;
+                var entry_num = 5;
+                var buy_price_change_minute = 300;
+                var buy_price_change_ratio = -0.01;
+                var sell_price_change_minute = 90;
+                var sell_price_change_ratio = 0.15;
+                var ac = new SimAccount();
+                var sim = new Sim();
+                ac = sim.sim_entry_timing_ptlc_price_change(from, to, ac, leverage, entry_interval_minutes, entry_num, pt, lc, buy_price_change_minute, buy_price_change_ratio, sell_price_change_minute, sell_price_change_ratio);
+                displaySimResult(ac, "price change entry param sim from:" + from.ToString() + " to:" + to.ToString() + ", pl=" + ac.performance_data.total_pl.ToString() + ", num=" + ac.performance_data.num_trade.ToString());
             }
             else if (key == "write")
             {
